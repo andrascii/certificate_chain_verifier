@@ -3,6 +3,8 @@
 
 int main()
 {
+	OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL);
+
 	const std::string rootCertificatePath("C:\\Users\\a.pugachev\\Desktop\\id256_A_CA.cer");
 	const std::string endCertificatePath("C:\\Users\\a.pugachev\\Desktop\\edvards.cer");
 
