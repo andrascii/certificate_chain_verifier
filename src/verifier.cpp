@@ -364,7 +364,7 @@ std::string Verifier::interpretError(int error) const
 		}
 		case X509_V_ERR_CA_MD_TOO_WEAK:
 		{
-			return std::string(".......................");
+			return std::string("X509_V_ERR_CA_MD_TOO_WEAK");
 		}
 		default:
 		{

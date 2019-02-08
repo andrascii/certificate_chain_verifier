@@ -33,13 +33,14 @@ project(${APPNAME})
 set(SOURCES_DIR src)
 set(INCLUDE_DIR include)
 
-set(OPENSSL_USE_STATIC_LIBS TRUE)
-
 find_package(OpenSSL REQUIRED)
 
+message("*********************************************************************")
+message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
 message("OpenSSL::SSL: ${OPENSSL_SSL_LIBRARY}")
 message("OpenSSL::Crypto: ${OPENSSL_CRYPTO_LIBRARY}")
-message("OpenSSL Libraries: ${OPENSSL_LIBRARIES}")
+message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
+message("*********************************************************************")
 
 aux_source_directory(${SOURCES_DIR} SOURCES_LIST)
 file(GLOB_RECURSE HEADERS_LIST "include/*.h")
@@ -84,7 +85,7 @@ include_directories(
 )
 target_link_libraries(
 	${APPNAME}
-	${OPENSSL_ROOT_DIR}/
+	${OPENSSL_LIBRARIES}
 	OpenSSL::SSL
 	OpenSSL::Crypto
 )
