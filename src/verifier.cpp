@@ -1,19 +1,22 @@
-#include "verifier.h"
+﻿#include "verifier.h"
 #include "finally.h"
+#include "icertificate_loader.h"
 
 namespace verifier
 {
 
-Verifier::Verifier(const std::string& rootCertificatePath, const std::string& endCertificatePath)
-	: m_rootCertificatePath(rootCertificatePath)
-	, m_endCertificatePath(endCertificatePath)
+Verifier::Verifier(const std::shared_ptr<ICertificateLoader>& rootCertificateLoader,
+	const std::shared_ptr<ICertificateLoader>& endCertificateLoader,
+	const X509CertificateChain& untrustedCertificateChain)
+	: m_rootCertificateLoader(rootCertificateLoader)
+	, m_endCertificateLoader(endCertificateLoader)
+	, m_untrustedCertificateChain(untrustedCertificateChain)
 {
 }
 
 std::pair<bool, std::string> Verifier::verify() const
 {
 	X509_STORE* certContext = nullptr;
-	X509_LOOKUP* lookup = nullptr;
 
 	certContext = X509_STORE_new();
 
@@ -32,75 +35,22 @@ std::pair<bool, std::string> Verifier::verify() const
 
 	OpenSSL_add_all_algorithms();
 
-	lookup = X509_STORE_add_lookup(certContext, X509_LOOKUP_file());
-
-	if (!lookup || !X509_LOOKUP_load_file(lookup, m_rootCertificatePath.data(), X509_FILETYPE_PEM))
-	{
-		return std::make_pair(false, "Cannot add a lookup or create a lookup file");
-	}
-
-	lookup = X509_STORE_add_lookup(certContext, X509_LOOKUP_hash_dir());
-
-	if (!lookup)
-	{
-		return std::make_pair(false, "Cannot add a lookup");
-	}
-
-	X509_LOOKUP_add_dir(lookup, nullptr, X509_FILETYPE_DEFAULT);
-
-	return check(certContext, m_endCertificatePath);
+	return check(certContext);
 }
 
-X509* Verifier::certificateFromPemFile(const std::string& path) const
+std::pair<bool, std::string> Verifier::check(X509_STORE* context) const
 {
-	X509* x = nullptr;
-	BIO* cert;
+	X509CertificateChain trustedCertificateChain;
+	trustedCertificateChain.addCertificate(m_rootCertificateLoader->load());
 
-	Finally finallyObject([&cert]
-	{
-		if (cert)
-		{
-			BIO_free(cert);
-		}
-	});
-
-	if ((cert = BIO_new(BIO_s_file())) == nullptr)
-	{
-		return x;
-	}
-
-	if (BIO_read_filename(cert, path.data()) <= 0)
-	{
-		return x;
-	}
-
-	x = PEM_read_bio_X509_AUX(cert, nullptr, nullptr, nullptr);
-
-	return x;
-}
-
-std::pair<bool, std::string> Verifier::check(X509_STORE* context, const std::string& path) const
-{
-	X509* x509Certificate = nullptr;
-
-	Finally finallyObject([&x509Certificate]
-	{
-		if (x509Certificate)
-		{
-			X509_free(x509Certificate);
-		}
-	});
-
-	X509_STORE_CTX* x509StoreContext;
-
-	x509Certificate = certificateFromPemFile(path);
+	const X509Certificate x509Certificate = m_endCertificateLoader->load();
 
 	if (!x509Certificate)
 	{
 		return std::make_pair(false, std::string("Invalid resulted X509 certificate"));
 	}
 
-	x509StoreContext = X509_STORE_CTX_new();
+	X509_STORE_CTX* x509StoreContext = X509_STORE_CTX_new();
 
 	if (!x509StoreContext)
 	{
@@ -109,13 +59,15 @@ std::pair<bool, std::string> Verifier::check(X509_STORE* context, const std::str
 
 	X509_STORE_set_flags(context, 0);
 
-	if (!X509_STORE_CTX_init(x509StoreContext, context, x509Certificate, 0))
+	if (!X509_STORE_CTX_init(x509StoreContext, context, x509Certificate.get(), m_untrustedCertificateChain.get()))
 	{
 		return std::make_pair(false, std::string("Cannot initialize X509 store context"));
 	}
 
+	X509_STORE_CTX_set0_trusted_stack(x509StoreContext, trustedCertificateChain.get());
+
 	const bool allIsOk = X509_verify_cert(x509StoreContext) == 1;
-	const std::string errorMessage = interpretError(X509_STORE_CTX_get_error(x509StoreContext));
+	const std::string errorMessage = X509_verify_cert_error_string(X509_STORE_CTX_get_error(x509StoreContext));
 
 	X509_STORE_CTX_free(x509StoreContext);
 

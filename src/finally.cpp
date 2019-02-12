@@ -1,4 +1,4 @@
-#include "finally.h"
+﻿#include "finally.h"
 
 namespace verifier
 {
