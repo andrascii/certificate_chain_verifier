@@ -5,6 +5,7 @@
 namespace verifier
 {
 
+//! Loads certificate from file in PEM format
 class CertificatePemFileLoader final : public ICertificateLoader
 {
 public:

@@ -7,6 +7,8 @@ namespace verifier
 
 class ICertificateLoader;
 
+//! Do the verification of the certificates chain.
+//! Verifies all certificates except root certificate.
 class Verifier final
 {
 public:
@@ -14,6 +16,8 @@ public:
 		const std::shared_ptr<ICertificateLoader>& endCertificateLoader,
 		const X509CertificateChain& untrustedCertificateChain);
 
+	//! Returns pair where first element is true if verification successfully done.
+	//! Returns false and in this case also contains error message in the second pair element.
 	std::pair<bool, std::string> verify() const;
 
 private:
