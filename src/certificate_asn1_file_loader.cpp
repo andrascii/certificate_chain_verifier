@@ -1,7 +1,5 @@
 ﻿#include "certificate_asn1_file_loader.h"
 #include "certificate_asn1_loader.h"
-#include <windows.h>
-#include <wincrypt.h>
 
 namespace verifier
 {
