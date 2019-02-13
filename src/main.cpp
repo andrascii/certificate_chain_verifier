@@ -15,19 +15,23 @@ int main()
 	const std::string caCertificatePath("C:\\Users\\a.pugachev\\Desktop\\certchain\\slave_ca_gost_2012.crt");
 
 	// Certificate to verify
-	const std::string endCertificatePath("C:\\Users\\a.pugachev\\Desktop\\certchain\\user.cer");
+	const std::string verifyingCertificatePath("C:\\Users\\a.pugachev\\Desktop\\certchain\\user.cer");
 
-	const std::shared_ptr<ICertificateLoader> loader = std::make_shared<CertificatePemFileLoader>(caCertificatePath);
+	const std::shared_ptr<ICertificateLoader> caCertificateLoader = std::make_shared<CertificatePemFileLoader>(caCertificatePath);
+	const std::shared_ptr<ICertificateLoader> rootCertificateLoader = std::make_shared<CertificatePemFileLoader>(rootCertificatePath);
 
 	// Intermediate certificates which also must be verified.
 	// It also used to pass verification from end certificate up to the root certificate.
 	X509CertificateChain untrustedCertificateChain;
-	untrustedCertificateChain.addCertificate(loader->load());
+	untrustedCertificateChain.addCertificate(caCertificateLoader->load());
 
-	const Verifier verifyObject(
-		std::make_shared<CertificatePemFileLoader>(rootCertificatePath),
-		std::make_shared<CertificatePemFileLoader>(endCertificatePath),
-		untrustedCertificateChain);
+	// Trusted certificates chain which must not be verified.
+	// Push onto this chain the root certificate.
+	X509CertificateChain trustedCertificateChain;
+	trustedCertificateChain.addCertificate(rootCertificateLoader->load());
+
+	const Verifier verifyObject(trustedCertificateChain, untrustedCertificateChain,
+		std::make_shared<CertificatePemFileLoader>(verifyingCertificatePath), X509CrlList());
 
 	const std::pair<bool, std::string> result = verifyObject.verify();
 

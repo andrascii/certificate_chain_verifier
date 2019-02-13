@@ -5,12 +5,14 @@
 namespace verifier
 {
 
-Verifier::Verifier(const std::shared_ptr<ICertificateLoader>& rootCertificateLoader,
-	const std::shared_ptr<ICertificateLoader>& endCertificateLoader,
-	const X509CertificateChain& untrustedCertificateChain)
-	: m_rootCertificateLoader(rootCertificateLoader)
-	, m_endCertificateLoader(endCertificateLoader)
+Verifier::Verifier(const X509CertificateChain& trustedCertificateChain,
+	const X509CertificateChain& untrustedCertificateChain,
+	const std::shared_ptr<ICertificateLoader>& verifyingCertificateLoader,
+	const X509CrlList& crlList)
+	: m_trustedCertificateChain(trustedCertificateChain)
 	, m_untrustedCertificateChain(untrustedCertificateChain)
+	, m_verifyingCertificateLoader(verifyingCertificateLoader)
+	, m_crlList(crlList)
 {
 }
 
@@ -40,10 +42,7 @@ std::pair<bool, std::string> Verifier::verify() const
 
 std::pair<bool, std::string> Verifier::check(X509_STORE* context) const
 {
-	X509CertificateChain trustedCertificateChain;
-	trustedCertificateChain.addCertificate(m_rootCertificateLoader->load());
-
-	const X509Certificate x509Certificate = m_endCertificateLoader->load();
+	const X509Certificate x509Certificate = m_verifyingCertificateLoader->load();
 
 	if (!x509Certificate)
 	{
@@ -64,7 +63,8 @@ std::pair<bool, std::string> Verifier::check(X509_STORE* context) const
 		return std::make_pair(false, std::string("Cannot initialize X509 store context"));
 	}
 
-	X509_STORE_CTX_set0_trusted_stack(x509StoreContext, trustedCertificateChain.get());
+	X509_STORE_CTX_set0_trusted_stack(x509StoreContext, m_trustedCertificateChain.get());
+	X509_STORE_CTX_set0_crls(x509StoreContext, m_crlList.get());
 
 	const bool allIsOk = X509_verify_cert(x509StoreContext) == 1;
 	const std::string errorMessage = X509_verify_cert_error_string(X509_STORE_CTX_get_error(x509StoreContext));
