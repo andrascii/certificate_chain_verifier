@@ -5,6 +5,7 @@
 namespace verifier
 {
 
+//! Loads X509 certificate from file in ASN1 representation
 class CertificateAsn1FileLoader final : public ICertificateLoader
 {
 public:

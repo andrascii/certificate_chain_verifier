@@ -3,6 +3,11 @@
 namespace verifier
 {
 
+CertificateAsn1Loader::CertificateAsn1Loader(std::vector<uint8_t>&& asn1Buffer)
+	: m_asn1Buffer(std::move(asn1Buffer))
+{
+}
+
 CertificateAsn1Loader::CertificateAsn1Loader(const std::vector<uint8_t>& asn1Buffer)
 	: m_asn1Buffer(asn1Buffer)
 {

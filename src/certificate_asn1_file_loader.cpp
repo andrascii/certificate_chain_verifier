@@ -12,9 +12,9 @@ CertificateAsn1FileLoader::CertificateAsn1FileLoader(const std::string& asn1File
 X509Certificate CertificateAsn1FileLoader::load() const
 {
 	std::ifstream input(m_asn1FilePath, std::ios_base::binary);
-	const std::vector<uint8_t> buffer = fileContent();
+	std::vector<uint8_t> buffer = fileContent();
 
-	CertificateAsn1Loader loaderHelper(buffer);
+	CertificateAsn1Loader loaderHelper(std::move(buffer));
 	return loaderHelper.load();
 }
 
